@@ -5,7 +5,8 @@ var store = {
 	track_id: undefined,
 	player_id: undefined,
 	race_id: undefined,
-	tracks: undefined
+	tracks: undefined,
+	start: false
 }
 
 // We need our javascript to wait until the DOM is loaded
@@ -59,7 +60,7 @@ function setupClickHandlers() {
 		// Handle acceleration click
 		if (target.matches('#gas-peddle')) {
 			handleAccelerate(target)
-		}
+		} 
 
 	}, false)
 }
@@ -105,17 +106,15 @@ function runRace(raceID) {
 		const id = setInterval(() => {
 			getRace(raceID)
 				.then(res => {
-					console.log(res.status)
 					if (res.status !== 'finished') {
 						// TODO - if the race info status property is "in-progress", update the leaderboard by calling:
 						renderAt('#leaderBoard', raceProgress(res.positions))
 						// console.log(res.positions)
 					} else {
 						// TODO - if the race info status property is "finished", run the following:
-						clearInterval(raceInterval) // to stop the interval from repeating
+						clearInterval(id) // to stop the interval from repeating
 						renderAt('#race', resultsView(res.positions)) // to render the results view
-						reslove(res) // resolve the promise
-						// console.log(res.status)
+						resolve(res) // resolve the promise
 					}
 				})
 		}, 500)
@@ -181,8 +180,14 @@ function handleSelectTrack(target) {
 }
 
 function handleAccelerate() {
-	console.log("accelerate button clicked")
+	
 	// TODO - Invoke the API call to accelerate
+	if (store.start) {
+		console.log("accelerate button clicked")
+		accelerate(store.race_id);
+	} else {
+		console.log("Not yet started!!")
+	}
 }
 
 // HTML VIEWS ------------------------------------------------
@@ -379,14 +384,6 @@ function createRace(player_id, track_id) {
 
 async function getRace(id) {
 	// GET request to `${SERVER}/api/races/${id}`
-	// const newId = parseInt(id) - 1
-	// return fetch(`${SERVER}/api/races/${newId}`, {
-	// 	method: 'GET',
-	// 	dataType: 'jsonp',
-	// 	...defaultFetchOpts()
-	// })
-	// 	.then(res => res.json())
-	// 	.catch(err => console.log("Problem with getRace", err.message))
 	const newId = parseInt(id) - 1
 	try {
 		return await fetch(`${SERVER}/api/races/${newId}`, {
@@ -399,6 +396,7 @@ async function getRace(id) {
 }
 
 async function startRace(id) {
+	store.start = true
 	const newId = parseInt(id) - 1
 	try {
 		return await fetch(`${SERVER}/api/races/${newId}/start`, {
@@ -410,14 +408,17 @@ async function startRace(id) {
 	}
 }
 
-function accelerate(id) {
+async function accelerate(id) {
 	// POST request to `${SERVER}/api/races/${id}/accelerate`
 	// options parameter provided as defaultFetchOpts
 	// no body or datatype needed for this request
-	fetch(`${SERVER}/api/races/${id}/accelerate`, {
-		method: 'POST',
-		...defaultFetchOpts()
-	})
-	.then(res => res.json())
-	.catch(err => console.log("Problem with accelerate", err))
+	const newId = parseInt(id) - 1
+	try {
+		return await fetch(`${SERVER}/api/races/${newId}/accelerate`, {
+			method: 'POST',
+			...defaultFetchOpts()
+		})
+	} catch (err) {
+		console.log("Problem with accelerate request::", err.message)
+	}
 }
